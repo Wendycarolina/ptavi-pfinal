@@ -5,6 +5,9 @@ import socket
 import sys
 import hashlib
 import os
+from uaserver import XMLHandler#crear handler xml como en práctica3
+from xml.sax import make_parser
+from xml.sax.handler import ContentHandler
 
 
 class Log:
@@ -33,42 +36,65 @@ class Log:
         log.close()
 
 
-
-# Argumentos que introduce el cliente.
-try:
-    Config = sys.argv[1]
-    METODO = sys.argv[2].upper()
-    if METODO = 'REGISTER':
-        Option = int(sys.argv[3])
-    elif METODO = 'INVITE' or 'BYE':
-        Option = str(sys.argv[3])
-        if '@' not in Option:
+if __name__ == "__main__":
+    # Argumentos que introduce el cliente.
+    try:
+        Config = sys.argv[1]
+        METODO = sys.argv[2].upper()
+        if METODO == 'REGISTER':
+            Option = int(sys.argv[3])
+        elif METODO == 'INVITE' or 'BYE':
+            Option = str(sys.argv[3])
+            if '@' not in Option:
+                print('Usage: python uaclient.py config method option')
+                raise SystemExit
+        if len(sys.argv) != 3:
             print('Usage: python uaclient.py config method option')
             raise SystemExit
-    if len(sys.argv) != 3:
+    except IndexError:
         print('Usage: python uaclient.py config method option')
         raise SystemExit
-except IndexError:
-    print 'Usage: python uaclient.py config method option'
-    raise SystemExit
-except ValueError:
-    print 'Usage: python uaclient.py config method option'
-    raise SystemExit
+    except ValueError:
+        print('Usage: python uaclient.py config method option')
+        raise SystemExit
 
-#------------------------------CAMBIAR--------------------
-#Falta ip y puerto para conectar
+    parser = make_parser()
+    xml_hand = XMLHandler()
+    parser.setContentHandler(xml_hand)
+    try:
+        parser.parse(open(Config))
+    except IOError:
+        sys.exit('Usage: python uaclient.py config method option')
 
-# Creamos el socket, lo configuramos y lo atamos a un servidor/puerto
-my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-my_socket.connect((IP, PORT))
+    #Datos para conectar con el proxy y servidor
+    xml_handler = xml_hand.get_tags()
+    for dicc in xml_handler.lista:
+         if dicc['name'] == 'account':
+             username = dicc['username']
+             passwd = dicc['passwd']
+         elif dicc['name'] == 'uaserver':
+             ip_server = dicc['ip']
+             port_server = dicc['puerto']
+         elif dicc['name'] == 'rtpaudio':
+             port_rtp = int(dicc['puerto'])
+         elif dicc['name'] == 'regproxy':
+             ip_px = dicc['ip']
+             port_px = int(dicc['puerto'])
+         elif dicc['name'] == 'log':
+             log_path = dicc['path']
+         elif dicc['name'] == 'audio':
+             audio_path = dicc['path']
 
-#-------------------------------------------------------
-try:
+    # Creamos el socket, lo configuramos y lo atamos a un servidor/puerto del proxi
+    my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    my_socket.connect((ip_px, port_px))
+
+    #Creamos log
+    fich_log = Log(log_path)
     #Formamos peticiones
-    if METODO = 'REGISTER':
-         request = METODO + ' sip:' + username + ':' \
-             + str(port_server) + ' SIP/2.0\r\n'
+    if METODO == 'REGISTER':
+         request = METODO + ' sip:' + username + ':' + str(port_server) + ' SIP/2.0\r\n'
          cabecera = 'Expires: ' + Option + '\r\n\r\n'
          request_t = request + cabecera
  
@@ -77,7 +103,7 @@ try:
          cabecera = 'Content-Type: application/sdp\r\n\r\n'
     #Estructura SDP
          sdp = 'v=0\r\n' + 'o=' + username + ' ' + ip_server + '\r\n' \
-             + 's=MiSesion\r\n' + 't=0\r\n' + 'm=audio ' + str(port_rtp) \
+             + 's=MiSesion\r\n' + 't=0\r\n' + 'm=audio ' + str(port_rtp)\
              + ' RTP'
          request_t = request + cabecera + sdp
  
@@ -85,39 +111,40 @@ try:
          request_t = METODO + ' sip:' + Option + ' SIP/2.0\r\n\r\n'
     #Enviamos petición
     my_socket.send(request)
-    #------------------Meter LOG-------------
+    fich_log.eventos('Sent to',ip_px, port_px, request_t)
 
-try:
-    #Vemos lo que recibimos
-    data = my_socket.recv(1024)
-    print('Recibido -- ', data.decode('utf-8'))
-    Data = data.split()
-    Trying = Data[1].decode('utf-8')
-    Ring = Data[4].decode('utf-8')
-    Ok = Data[7].decode('utf-8')
-    #Respuesta si recibe un Trying, Ring y OK
-    if Trying == '100':
-        if Ring == '180' and Ok == '200':
-            request = 'ACK' + ' sip:' + ADDRESS + ' SIP/2.0'
-            print("Enviando: " + request)
-            my_socket.send(request)
-    #---------------------Meter log------------
-    #para autentificar
-    elif Trying == '401':
-        request = METODO + ' sip:' + username + ':' \
-             + str(port_server) + ' SIP/2.0\r\n'
-         cabecera = 'Expires: ' + Option + '\r\n'
-         m = hashlib.md5()
-         m.update(passwd + nonce)
-         response = m.hexdigest()
-         Authorization = 'Authorization:' + 'response=' + response
-         request_t = request + cabecera + Authorization
-         my_socket.send(request_t)
+    try:
+        #Vemos lo que recibimos
+        data = my_socket.recv(1024)
+        print('Recibido -- ', data.decode('utf-8'))
+        fich_log.eventos('Received from', ip_px, port_px, data)
+        Data = data.split()
+        Trying = Data[1].decode('utf-8')
+        Ring = Data[4].decode('utf-8')
+        Ok = Data[7].decode('utf-8')
+        #Respuesta si recibe un Trying, Ring y OK
+        if Trying == '100':
+            if Ring == '180' and Ok == '200':
+            #------------CAMBIAR----------------------------
+                request = 'ACK' + ' sip:' + ADDRESS + ' SIP/2.0'
+                print("Enviando: " + request)
+                my_socket.send(request)
+                fich_log.eventos('Sent to', ip_px, port_px, request) 
+        #para autentificar
+        elif Trying == '401':
+            request = METODO + ' sip:' + username + ':' + str(port_server) + ' SIP/2.0\r\n'
+            cabecera = 'Expires: ' + Option + '\r\n'
+            m = hashlib.md5()
+            m.update(passwd + nonce)
+            response = m.hexdigest()
+            Authorization = 'Authorization:' + 'response=' + response
+            request_t = request + cabecera + Authorization
+            my_socket.send(request_t)
+            fich_log.eventos('Sent to', ip_px, port_px, request_t) 
 
 
-
-    # Cerramos todo
-    my_socket.close()
-    print("Fin.")
-except socket.error:
-    sys.exit('Error: No server listening at ' + SERVER + ' port ' + str(PORT))
+        # Cerramos todo
+        my_socket.close()
+        print("Fin.")
+    except socket.error:
+        sys.exit('Error: No server listening at ' + SERVER + ' port ' + str(PORT))
