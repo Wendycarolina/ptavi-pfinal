@@ -1,8 +1,5 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
-"""
-Clase (y programa principal) para un servidor de eco en UDP simple
-"""
 
 import socketserver
 import sys
@@ -46,30 +43,46 @@ class EchoHandler(socketserver.DatagramRequestHandler):
             #Datos para poder responder cliente o proxi
             ip_client = self.client_address[0]
             port_client = self.client_address[1]
+            fich_log.eventos('Receiving from',ip_client , port_client, line)
             if linea != '':
                 Metodo = linea.split()[0]
-                IP = self.client_address[0]
                 print(Metodo)
                 #Mensajes que envío
                 if Metodo == 'INVITE':
                     message = 'SIP/2.0 100 TRYING\r\n\r\n'
-                    message += 'SIP/2.0 180 RINGING\r\n\r\n'
-                    message += 'SIP/2.0 200 OK\r\n\r\n'
                     self.wfile.write(message)
+                    fich_log.eventos('Sent to',ip_client , port_client, message)
+                    message = 'SIP/2.0 180 RINGING\r\n\r\n'
+                    self.wfile.write(message)
+                    fich_log.eventos('Sent to',ip_client , port_client, message)
+                    message = 'SIP/2.0 200 OK\r\n\r\n'
+                    cabecera = 'Content-Type: application/sdp\r\n\r\n'
+                    #Estructura SDP
+                    sdp = 'v=0\r\n' + 'o=' + username + ' ' + ip_server + '\r\n' \
+                     + 's=MiSesion\r\n' + 't=0\r\n' + 'm=audio ' + str(port_rtp)\
+                     + ' RTP'
+                    message = message + cabecera + sdp
+                    self.wfile.write(message)
+                    fich_log.eventos('Sent to',ip_client , port_client, message)
                 elif Metodo == 'ACK':
-                    #ejecutar en la shell
-                    aEjecutar = './mp32rtp -i ' + IP + ' -p 23032 < ' + AUDIO + '\r\n'
+                    #ip y puerto obtenidos mediante descripción de la sesion (SDP)
+                    #REVISAR!!!!!!!!!!
+                    aEjecutar = './mp32rtp -i ' + ip_client + ' -p ' + ip_recept
+                    aEjecutar += '<' + audio_path
                     print("Vamos a ejecutar", aEjecutar)
                     os.system(aEjecutar)
                 elif Metodo == 'BYE':
                     message = 'SIP/2.0 200 OK\r\n\r\n'
                     self.wfile.write(message)
+                    fich_log.eventos('Sent to',ip_client , port_client, message)
                 elif not Metodo in List:
                     message = 'SIP/2.0 405 Method Not Allowed'
                     self.wfile.write(message)
+                    fich_log.eventos('Sent to',ip_client , port_client, message)
                 else:
                     message = 'SIP/2.0 400 Bad Request\r\n'
                     self.wfile.write(message)
+                    fich_log.eventos('Sent to',ip_client , port_client, message)
             else:
                 break
 
