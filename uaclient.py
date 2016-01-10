@@ -137,7 +137,7 @@ if __name__ == "__main__":
             m = hashlib.md5()
             m.update(passwd + nonce)
             response = m.hexdigest()
-            Authorization = 'Authorization:' + 'response=' + response
+            Authorization = 'Authorization: response=' + response
             request_t = request + cabecera + Authorization
             my_socket.send(request_t)
             fich_log.eventos('Sent to', ip_px, port_px, request_t) 
@@ -147,4 +147,4 @@ if __name__ == "__main__":
         my_socket.close()
         print("Fin.")
     except socket.error:
-        sys.exit('Error: No server listening at ' + SERVER + ' port ' + str(PORT))
+        sys.exit('Error: No server listening at port ' + str(port_server))
