@@ -67,7 +67,7 @@ class EchoHandler(socketserver.DatagramRequestHandler):
                 elif Metodo == 'ACK':
                     #ip y puerto obtenidos mediante descripción de la sesion (SDP)
                     #REVISAR!!!!!!!!!!
-                    aEjecutar = './mp32rtp -i ' + ip_client + ' -p ' + ip_recept
+                    aEjecutar = './mp32rtp -i ' + ip_server + ' -p ' + port_rtp
                     aEjecutar += '<' + audio_path
                     print("Vamos a ejecutar", aEjecutar)
                     os.system(aEjecutar)
@@ -97,7 +97,34 @@ if __name__ == "__main__":
             raise SystemExit
     except IndexError:
         sys.exit('Usage: python uaserver.py config')
+    
+    parser = make_parser()
+    xml_hand = XMLHandler()
+    parser.setContentHandler(xml_hand)
+    try:
+        parser.parse(open(Config))
+    except IOError:
+    #Obtengo datos
+    xml_handler = XMLHandler()
+    for dicc in xml_handler.lista:
+         if dicc['name'] == 'account':
+             username = dicc['username']
+             passwd = dicc['passwd']
+         elif dicc['name'] == 'uaserver':
+             ip_server = dicc['ip']
+             port_server = dicc['puerto']
+         elif dicc['name'] == 'rtpaudio':
+             port_rtp = int(dicc['puerto'])
+         elif dicc['name'] == 'regproxy':
+             ip_px = dicc['ip']
+             port_px = int(dicc['puerto'])
+         elif dicc['name'] == 'log':
+             log_path = dicc['path']
+         elif dicc['name'] == 'audio':
+             audio_path = dicc['path']
 
     serv = socketserver.UDPServer(('', PORT), EchoHandler)
+    fich_log = uaclient.Log(log_path)
+    fich_log.eventos('Starting','', '', '')
     print("Listening...")
     serv.serve_forever()
