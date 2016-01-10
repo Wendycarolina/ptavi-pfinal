@@ -6,6 +6,34 @@ import sys
 import hashlib
 import os
 
+
+class Log:
+    
+    def __init__(self,fich_log):
+    
+        self.fich_log = fich_log
+
+    def eventos(self, evento, ip, port, messag,):
+    #Eventos : escribe en el log
+        log = open(self.fich_log, 'a')
+        Time = time.time()
+        fecha = '%Y-%m-%d %H:%M:%S'
+        Time_user = time.strftime(fecha, time.gmtime(Time))
+        if evento == 'Starting':
+            line = Time_user + 'Starting...'
+        elif evento == 'Finishing':
+            line = Time_user + 'Finishing.'
+        elif evento == 'Sent to ':
+            line = Time_user + evento + ':' + port + ':' + messag  
+        elif evento == 'Received from':
+            line = Time_user + evento + ip + ':' + port + ':' + messag
+        elif evento == 'Error':
+            line = Time_user + messag
+        log.write(line)    
+        log.close()
+
+
+
 # Argumentos que introduce el cliente.
 try:
     Config = sys.argv[1]
@@ -29,9 +57,6 @@ except ValueError:
 
 #------------------------------CAMBIAR--------------------
 #Falta ip y puerto para conectar
-# Contenido que vamos a enviar
-LINE = METODO + ' sip:' + ADDRESS + ' SIP/2.0' + '\r\n'
-
 
 # Creamos el socket, lo configuramos y lo atamos a un servidor/puerto
 my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
