@@ -104,6 +104,7 @@ if __name__ == "__main__":
     try:
         parser.parse(open(Config))
     except IOError:
+        sys.exit('Usage: python uaserver.py config')
     #Obtengo datos
     xml_handler = XMLHandler()
     for dicc in xml_handler.lista:
