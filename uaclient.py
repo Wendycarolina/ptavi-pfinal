@@ -119,12 +119,12 @@ if __name__ == "__main__":
         print('Recibido -- ', data.decode('utf-8'))
         fich_log.eventos('Received from', ip_px, port_px, data)
         Data = data.split()
-        Trying = Data[1].decode('utf-8')
-        Ring = Data[4].decode('utf-8')
-        Ok = Data[7].decode('utf-8')
+        Trying = Data[0]
+        Ring = Data[1]
+        Ok = Data[2]
         #Respuesta si recibe un Trying, Ring y OK
-        if Trying == '100':
-            if Ring == '180' and Ok == '200':
+        if Trying == 'SIP/2.0 100 TRYING\r\n\r\n':
+            if Ring == 'SIP/2.0 180 RINGING\r\n\r\n' and Ok == 'SIP/2.0 200 OK\r\n\r\n':
             #------------CAMBIAR----------------------------
                 request = 'ACK' + ' sip:' + ADDRESS + ' SIP/2.0'
                 print("Enviando: " + request)
