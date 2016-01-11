@@ -11,7 +11,7 @@ from xml.sax.handler import ContentHandler
 import uaclient
 
 
-class XMLHandler(ContentHandler):
+class XMLHandlerP(ContentHandler):
     def __init__(self):
         self.etiqueta = ['server', 'database', 'log']
         self.atributo = {'server': ['name', 'ip', 'puerto'],
@@ -113,6 +113,7 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
                     except socket.error:
                         sys.exit('Error: No server listening at '+ ip_r + ' port ' + str(port_r))
                     self.wfile.write(data)
+                    print('----------------'+data)
                     fich_log.eventos('Sent to',ip_r , port_r, data)
                 else:
                     request = b'SIP/2.0 404 User Not Found\r\n'
@@ -132,6 +133,7 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
                     my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                     my_socket.connect((ip_px, port_px))
                     my_socket.send(bytes(linea,'utf-8'))
+                    print('----------------222'+data)
                     fich_log.eventos('Sent to',ip_r , port_r, linea)
                 else:
                     request = b'SIP/2.0 404 User Not Found\r\n'
@@ -152,16 +154,17 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
 
 if __name__ == "__main__":
     #Argumentos proxy
-    Config = sys.argv[1]
-    List = ['REGISTER','INVITE', 'ACK', 'BYE']
-    if len(sys.argv) != 1:
-        print('Usage: python uaserver.py config')
-        raise SystemExit
+    try:
+        Config = sys.argv[1]
+        List = ['REGISTER','INVITE', 'ACK', 'BYE']
+        if len(sys.argv) != 2:
+            print('Usage: python uaserver.py config')
+            raise SystemExit
     except IndexError:
         sys.exit('Usage: python proxy_registrar.py config')
 
     parser = make_parser()
-    xml_hand = XMLHandler()
+    xml_hand = XMLHandlerP()
     parser.setContentHandler(xml_hand)
     try:
         parser.parse(open(Config))
@@ -173,19 +176,19 @@ if __name__ == "__main__":
             name = dicc['name']
             ip_px = dicc['ip']
             port_px = int(dicc['puerto'])
-        elif dic['name'] == 'database':
+        elif dicc['name'] == 'database':
             user_path = dicc['path']
             passwd_path = dicc['passwdpath']
         elif dicc['name'] == 'log':
             log_path = dicc['path']
 
-    serv = socketserver.UDPServer((ip_px, port_px ), SIPRegisterHandler)
+    serv = socketserver.UDPServer(('', 3500), SIPRegisterHandler)
     fich_log = uaclient.Log(log_path)
     fich_log.eventos('Starting','', '', '')
-    print('Server MiServidorBingBang listening at port ' + str(port_px) + '...')
+    print('Server MiServidorBingBang listening at port ' + str(3500) + '...')
     serv.serve_forever()
 
-
-
+#-----------------DUDAS--------------
+#Por qué las variables ip_px y port_px aparecen como no definidas?¿?
 
 
