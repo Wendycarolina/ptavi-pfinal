@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import socketserver
+import socket
 import sys
 import os
 import random
@@ -56,7 +57,7 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
         # Escribe dirección y puerto del cliente (de tupla client_address)
         #self.json2registered()
         ip = self.client_address[0]
-        port = str(self.client_address[1]
+        port = str(self.client_address[1])
         while 1:
             # Leyendo línea a línea lo que nos envía el cliente
             line = self.rfile.read()
@@ -64,7 +65,7 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
             linea = line.decode('utf-8')
             if linea.split()[0] == 'REGISTER':
                 #Creo y guardo datos usuario
-                Cabecera = linea.split('\r\n',:2)
+                Cabecera = linea.split('\r\n')
                 if 'Authorization' not in Cabecera:
                     nonce = random.getrandbits(1024)
                     Unauthorized = b'SIP/2.0 401 Unauthorized\r\n'
@@ -94,9 +95,9 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
                 Address = linea.split()[1].split(':')[1]
                 Encontrado = False
                 for User in dicc.keys():
-                    if Address = User:
+                    if Address == User:
                         Encontrado = True
-                if Encontrado = True:
+                if Encontrado == True:
                     ip_r = dicc[Address][0]
                     port_r = int(dicc[Address][1])
                     #Conectamos con el receptor
@@ -121,9 +122,9 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
                 Address = linea.split()[1].split(':')[1]
                 Encontrado = False
                 for User in dicc.keys():
-                    if Address = User:
+                    if Address == User:
                         Encontrado = True
-                if Encontrado = True:
+                if Encontrado == True:
                     ip_r = dicc[Address][0]
                     port_r = int(dicc[Address][1])
                     #Conectamos con el receptor
@@ -153,9 +154,9 @@ if __name__ == "__main__":
     #Argumentos proxy
     Config = sys.argv[1]
     List = ['REGISTER','INVITE', 'ACK', 'BYE']
-        if len(sys.argv) != 1:
-            print('Usage: python uaserver.py config')
-            raise SystemExit
+    if len(sys.argv) != 1:
+        print('Usage: python uaserver.py config')
+        raise SystemExit
     except IndexError:
         sys.exit('Usage: python proxy_registrar.py config')
 
