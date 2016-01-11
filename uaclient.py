@@ -6,7 +6,7 @@ import sys
 import hashlib
 import os
 import time
-from uaserver import XMLHandler
+import uaserver
 from xml.sax import make_parser
 from xml.sax.handler import ContentHandler
 
@@ -49,7 +49,7 @@ if __name__ == "__main__":
             if '@' not in Option:
                 print('Usage: python uaclient.py config method option')
                 raise SystemExit
-        if len(sys.argv) != 3:
+        if len(sys.argv) != 4:
             print('Usage: python uaclient.py config method option')
             raise SystemExit
     except IndexError:
@@ -60,7 +60,7 @@ if __name__ == "__main__":
         raise SystemExit
 
     parser = make_parser()
-    xml_hand = XMLHandler()
+    xml_hand = uaserver.XMLHandler()
     parser.setContentHandler(xml_hand)
     try:
         parser.parse(open(Config))
@@ -68,8 +68,7 @@ if __name__ == "__main__":
         sys.exit('Usage: python uaclient.py config method option')
 
     #Datos para conectar con el proxy y servidor
-    xml_handler = xml_hand.get_tags()
-    for dicc in xml_handler.lista:
+    for dicc in xml_hand.lista:
          if dicc['name'] == 'account':
              username = dicc['username']
              passwd = dicc['passwd']
@@ -100,7 +99,7 @@ if __name__ == "__main__":
          request_t = request + cabecera
  
     elif METODO == 'INVITE':
-         request = METODO + ' sip:' + OPCION + ' SIP/2.0\r\n'
+         request = METODO + ' sip:' + Option + ' SIP/2.0\r\n'
          cabecera = 'Content-Type: application/sdp\r\n\r\n'
     #Estructura SDP
          sdp = 'v=0\r\n' + 'o=' + username + ' ' + ip_server + '\r\n' \
@@ -112,8 +111,7 @@ if __name__ == "__main__":
          request_t = METODO + ' sip:' + Option + ' SIP/2.0\r\n\r\n'
     #Enviamos petición
     my_socket.send(bytes(request,'utf-8'))
-    fich_log.eventos('Sent to',ip_px, port_px, request_t)
-
+    fich_log.eventos('Sent to',ip_px, str(port_px), request_t)
     try:
         #Vemos lo que recibimos
         data = my_socket.recv(1024)
@@ -126,7 +124,7 @@ if __name__ == "__main__":
         #Respuesta si recibe un Trying, Ring y OK
         if Trying == 'SIP/2.0 100 TRYING\r\n\r\n':
             if Ring == 'SIP/2.0 180 RINGING\r\n\r\n' and Ok == 'SIP/2.0 200 OK\r\n\r\n':
-            #------------REVISAR OK METER SDP??----------------------------
+            #------------REVISAR SDP----------------------------
                 fich_log.eventos('Received from', ip_px, port_px, Trying)
                 fich_log.eventos('Received from', ip_px, port_px, Ring)
                 fich_log.eventos('Received from', ip_px, port_px, OK)
