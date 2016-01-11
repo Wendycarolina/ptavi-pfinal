@@ -49,18 +49,18 @@ class EchoHandler(socketserver.DatagramRequestHandler):
                 print(Metodo)
                 #Mensajes que envío
                 if Metodo == 'INVITE':
-                    message = 'SIP/2.0 100 TRYING\r\n\r\n'
+                    message = b'SIP/2.0 100 TRYING\r\n\r\n'
                     self.wfile.write(message)
                     fich_log.eventos('Sent to',ip_client , port_client, message)
-                    message = 'SIP/2.0 180 RINGING\r\n\r\n'
+                    message = b'SIP/2.0 180 RINGING\r\n\r\n'
                     self.wfile.write(message)
                     fich_log.eventos('Sent to',ip_client , port_client, message)
-                    message = 'SIP/2.0 200 OK\r\n\r\n'
-                    cabecera = 'Content-Type: application/sdp\r\n\r\n'
+                    message = b'SIP/2.0 200 OK\r\n'
+                    cabecera = b'Content-Type: application/sdp\r\n\r\n'
                     #Estructura SDP
-                    sdp = 'v=0\r\n' + 'o=' + username + ' ' + ip_server + '\r\n' \
-                     + 's=MiSesion\r\n' + 't=0\r\n' + 'm=audio ' + str(port_rtp)\
-                     + ' RTP'
+                    sdp = b'v=0\r\n' + b'o=' + username + ' ' + ip_server + '\r\n' \
+                     + b's=MiSesion\r\n' + b't=0\r\n' + b'm=audio ' + str(port_rtp)\
+                     + b' RTP'
                     message = message + cabecera + sdp
                     self.wfile.write(message)
                     fich_log.eventos('Sent to',ip_client , port_client, message)
@@ -72,15 +72,15 @@ class EchoHandler(socketserver.DatagramRequestHandler):
                     print("Vamos a ejecutar", aEjecutar)
                     os.system(aEjecutar)
                 elif Metodo == 'BYE':
-                    message = 'SIP/2.0 200 OK\r\n\r\n'
+                    message = b'SIP/2.0 200 OK\r\n\r\n'
                     self.wfile.write(message)
                     fich_log.eventos('Sent to',ip_client , port_client, message)
                 elif not Metodo in List:
-                    message = 'SIP/2.0 405 Method Not Allowed'
+                    message = b'SIP/2.0 405 Method Not Allowed'
                     self.wfile.write(message)
                     fich_log.eventos('Sent to',ip_client , port_client, message)
                 else:
-                    message = 'SIP/2.0 400 Bad Request\r\n'
+                    message = b'SIP/2.0 400 Bad Request\r\n'
                     self.wfile.write(message)
                     fich_log.eventos('Sent to',ip_client , port_client, message)
             else:
