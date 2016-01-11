@@ -28,9 +28,9 @@ class Log:
         elif evento == 'Finishing':
             line = Time_user + 'Finishing.'
         elif evento == 'Sent to':
-            line = Time_user + evento + ':' + port + ':' + messag  
+            line = Time_user + evento + ':' + str(port) + ':' + messag  
         elif evento == 'Received from':
-            line = Time_user + evento + ip + ':' + port + ':' + messag
+            line = Time_user + evento + ip + ':' + str(port) + ':' + messag.decode('utf-8')
         elif evento == 'Error':
             line = Time_user + messag
         log.write(line)    
@@ -95,7 +95,7 @@ if __name__ == "__main__":
     #Formamos peticiones
     if METODO == 'REGISTER':
          request = METODO + ' sip:' + username + ':' + str(port_server) + ' SIP/2.0\r\n'
-         cabecera = 'Expires: ' + Option + '\r\n\r\n'
+         cabecera = 'Expires: ' + str(Option) + '\r\n\r\n'
          request_t = request + cabecera
  
     elif METODO == 'INVITE':
@@ -110,7 +110,7 @@ if __name__ == "__main__":
     elif METODO == 'BYE':
          request_t = METODO + ' sip:' + Option + ' SIP/2.0\r\n\r\n'
     #Enviamos petición
-    my_socket.send(bytes(request,'utf-8'))
+    my_socket.send(bytes(request_t,'utf-8'))
     fich_log.eventos('Sent to',ip_px, str(port_px), request_t)
     try:
         #Vemos lo que recibimos
@@ -118,38 +118,39 @@ if __name__ == "__main__":
         print('Recibido -- ', data.decode('utf-8'))
         fich_log.eventos('Received from', ip_px, port_px, data)
         Data = data.split()
-        Trying = Data[0].decode('utf-8')
-        Ring = Data[1].decode('utf-8')
-        Ok = Data[2].decode('utf-8')
-        #Respuesta si recibe un Trying, Ring y OK
-        if Trying == 'SIP/2.0 100 TRYING\r\n\r\n':
-            if Ring == 'SIP/2.0 180 RINGING\r\n\r\n' and Ok == 'SIP/2.0 200 OK\r\n\r\n':
-            #------------REVISAR SDP----------------------------
-                fich_log.eventos('Received from', ip_px, port_px, Trying)
-                fich_log.eventos('Received from', ip_px, port_px, Ring)
-                fich_log.eventos('Received from', ip_px, port_px, OK)
-                request = 'ACK sip:' + Option + ' SIP/2.0'
-                print("Enviando: " + request)
-                my_socket.send(bytes(request,'utf-8'))
-                fich_log.eventos('Sent to', ip_px, port_px, request) 
-                Ip_serv = Ok.split('o=').split(' ')[0]
-                port = Ok.split('m=audio ')[0]
-                aEjecutar = './mp32rtp -i ' + Ip_serv + ' -p ' + port
-                aEjecutar += '<' + audio_path
-                print("Vamos a ejecutar", aEjecutar)
-                os.system(aEjecutar)
-        elif Trying == 'SIP/2.0 401 Unauthorized':
-            nonce = Ring.split('=')[0]
-            request = METODO + ' sip:' + username + ':' + str(port_server) + ' SIP/2.0\r\n'
-            cabecera = 'Expires: ' + Option + '\r\n'
-            m = hashlib.md5()
-            #---------------------REVISAR SI NONCE ESTA EN BYTES------------------
-            m.update(passwd + nonce)
-            response = m.hexdigest()
-            Authorization = 'Authorization: response=' + response
-            request_t = request + cabecera + Authorization
-            my_socket.send(bytes(request_t,'utf-8'))
-            fich_log.eventos('Sent to', ip_px, port_px, request_t) 
+        if METODO == 'INVITE':
+            Trying = Data[0].decode('utf-8')
+            Ring = Data[1].decode('utf-8')
+            Ok = Data[2].decode('utf-8')
+            #Respuesta si recibe un Trying, Ring y OK
+            if Trying == 'SIP/2.0 100 TRYING\r\n\r\n':
+                if Ring == 'SIP/2.0 180 RINGING\r\n\r\n' and Ok == 'SIP/2.0 200 OK\r\n\r\n':
+                #------------REVISAR SDP----------------------------
+                    fich_log.eventos('Received from', ip_px, port_px, Trying)
+                    fich_log.eventos('Received from', ip_px, port_px, Ring)
+                    fich_log.eventos('Received from', ip_px, port_px, OK)
+                    request = 'ACK sip:' + Option + ' SIP/2.0'
+                    print("Enviando: " + request)
+                    my_socket.send(bytes(request,'utf-8'))
+                    fich_log.eventos('Sent to', ip_px, port_px, request) 
+                    Ip_serv = Ok.split('o=').split(' ')[0]
+                    port = Ok.split('m=audio ')[0]
+                    aEjecutar = './mp32rtp -i ' + Ip_serv + ' -p ' + port
+                    aEjecutar += '<' + audio_path
+                    print("Vamos a ejecutar", aEjecutar)
+                    os.system(aEjecutar)
+            elif Trying == 'SIP/2.0 401 Unauthorized':
+                nonce = Ring.split('=')[0]
+                request = METODO + ' sip:' + username + ':' + str(port_server) + ' SIP/2.0\r\n'
+                cabecera = 'Expires: ' + Option + '\r\n'
+                m = hashlib.md5()
+                #---------------------REVISAR SI NONCE ESTA EN BYTES------------------
+                m.update(passwd + nonce)
+                response = m.hexdigest()
+                Authorization = 'Authorization: response=' + response
+                request_t = request + cabecera + Authorization
+                my_socket.send(bytes(request_t,'utf-8'))
+                fich_log.eventos('Sent to', ip_px, port_px, request_t) 
 
 
         # Cerramos todo
@@ -157,3 +158,8 @@ if __name__ == "__main__":
         print("Fin.")
     except socket.error:
         sys.exit('Error: No server listening at port ' + str(port_server))
+
+#------------------DUDAS---------------------------
+#Trying fuera de rango. Por que? el server lo hace bien?¿
+#Error en el proxy del uaclient line referenced before..
+
