@@ -51,6 +51,7 @@ class EchoHandler(socketserver.DatagramRequestHandler):
                 if Metodo == 'INVITE':
                     message = b'SIP/2.0 100 TRYING\r\n\r\n'
                     self.wfile.write(message)
+                    print('---------------ssss'+data)
                     fich_log.eventos('Sent to',ip_client , port_client, message)
                     message = b'SIP/2.0 180 RINGING\r\n\r\n'
                     self.wfile.write(message)
@@ -92,7 +93,7 @@ if __name__ == "__main__":
     try:
         Config = sys.argv[1]
         List = ['INVITE', 'ACK', 'BYE']
-        if len(sys.argv) != 1:
+        if len(sys.argv) != 2:
             print('Usage: python uaserver.py config')
             raise SystemExit
     except IndexError:
@@ -106,14 +107,13 @@ if __name__ == "__main__":
     except IOError:
         sys.exit('Usage: python uaserver.py config')
     #Obtengo datos
-    xml_handler = XMLHandler()
-    for dicc in xml_handler.lista:
+    for dicc in xml_hand.lista:
          if dicc['name'] == 'account':
              username = dicc['username']
              passwd = dicc['passwd']
          elif dicc['name'] == 'uaserver':
              ip_server = dicc['ip']
-             port_server = dicc['puerto']
+             port_server = int(dicc['puerto'])
          elif dicc['name'] == 'rtpaudio':
              port_rtp = int(dicc['puerto'])
          elif dicc['name'] == 'regproxy':
@@ -124,8 +124,13 @@ if __name__ == "__main__":
          elif dicc['name'] == 'audio':
              audio_path = dicc['path']
 
-    serv = socketserver.UDPServer(('', PORT), EchoHandler)
+    serv = socketserver.UDPServer((ip_server, port_server), EchoHandler)
     fich_log = uaclient.Log(log_path)
     fich_log.eventos('Starting','', '', '')
     print("Listening...")
     serv.serve_forever()
+
+#-------------------------DUDAS----------------------------
+#La autentificación tambien debe hacerla?? en el esquema aparece
+
+
