@@ -102,14 +102,40 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
                     #Conectamos con el receptor
                     my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                     my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                    my_socket.connect((ip_px, port_px))
+                    my_socket.connect((ip_r, port_r))
                     my_socket.send(bytes(linea,'utf-8'))
+                    fich_log.eventos('Sent to',ip_r , port_r, linea)
+                    try:
+                        data = my_socket.recv(1024)
+                        print('Recibido -- ', data.decode('utf-8'))
+                        fich_log.eventos('Receiving from',ip_r , port_r, data)
+                    except socket.error:
+                        sys.exit('Error: No server listening at '+ ip_r + ' port ' + str(port_r))
+                    self.wfile.write(data)
+                    fich_log.eventos('Sent to',ip_r , port_r, data)
                 else:
                     request = b'SIP/2.0 404 User Not Found\r\n'
                     self.wfile.write(request)
                     fich_log.eventos('Sent to',ip , port, request)
-            elif line.split()[0] == 'BYE':
-            elif line.split()[0] == 'ACK':
+            elif line.split()[0] == 'BYE' or 'ACK':
+                Address = linea.split()[1].split(':')[1]
+                Encontrado = False
+                for User in dicc.keys():
+                    if Address = User:
+                        Encontrado = True
+                if Encontrado = True:
+                    ip_r = dicc[Address][0]
+                    port_r = int(dicc[Address][1])
+                    #Conectamos con el receptor
+                    my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                    my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                    my_socket.connect((ip_px, port_px))
+                    my_socket.send(bytes(linea,'utf-8'))
+                    fich_log.eventos('Sent to',ip_r , port_r, linea)
+                else:
+                    request = b'SIP/2.0 404 User Not Found\r\n'
+                    self.wfile.write(request)
+                    fich_log.eventos('Sent to',ip , port, request)
             elif line.split()[0] not in List:
                 request = b'SIP/2.0 405 Method Not Allowed'
                 self.wfile.write(request)
@@ -132,3 +158,5 @@ if __name__ == "__main__":
             raise SystemExit
     except IndexError:
         sys.exit('Usage: python proxy_registrar.py config')
+
+
