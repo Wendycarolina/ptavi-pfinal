@@ -6,7 +6,7 @@ import sys
 import hashlib
 import os
 import time
-from uaserver import XMLHandler#crear handler xml como en práctica3
+from uaserver import XMLHandler
 from xml.sax import make_parser
 from xml.sax.handler import ContentHandler
 
@@ -27,7 +27,7 @@ class Log:
             line = Time_user + 'Starting...'
         elif evento == 'Finishing':
             line = Time_user + 'Finishing.'
-        elif evento == 'Sent to ':
+        elif evento == 'Sent to':
             line = Time_user + evento + ':' + port + ':' + messag  
         elif evento == 'Received from':
             line = Time_user + evento + ip + ':' + port + ':' + messag
@@ -134,7 +134,12 @@ if __name__ == "__main__":
                 print("Enviando: " + request)
                 my_socket.send(bytes(request,'utf-8'))
                 fich_log.eventos('Sent to', ip_px, port_px, request) 
-        #para autentificar
+                Ip_serv = Ok.split('o=').split(' ')[0]
+                port = Ok.split('m=audio ')[0]
+                aEjecutar = './mp32rtp -i ' + Ip_serv + ' -p ' + port
+                aEjecutar += '<' + audio_path
+                print("Vamos a ejecutar", aEjecutar)
+                os.system(aEjecutar)
         elif Trying == 'SIP/2.0 401 Unauthorized':
             nonce = Ring.split('=')[0]
             request = METODO + ' sip:' + username + ':' + str(port_server) + ' SIP/2.0\r\n'
