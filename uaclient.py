@@ -110,7 +110,7 @@ if __name__ == "__main__":
     elif METODO == 'BYE':
          request_t = METODO + ' sip:' + Option + ' SIP/2.0\r\n\r\n'
     #Enviamos petición
-    my_socket.send(request)
+    my_socket.send(bytes(request,'utf-8'))
     fich_log.eventos('Sent to',ip_px, port_px, request_t)
 
     try:
@@ -119,27 +119,31 @@ if __name__ == "__main__":
         print('Recibido -- ', data.decode('utf-8'))
         fich_log.eventos('Received from', ip_px, port_px, data)
         Data = data.split()
-        Trying = Data[0]
-        Ring = Data[1]
-        Ok = Data[2]
+        Trying = Data[0].decode('utf-8')
+        Ring = Data[1].decode('utf-8')
+        Ok = Data[2].decode('utf-8')
         #Respuesta si recibe un Trying, Ring y OK
         if Trying == 'SIP/2.0 100 TRYING\r\n\r\n':
             if Ring == 'SIP/2.0 180 RINGING\r\n\r\n' and Ok == 'SIP/2.0 200 OK\r\n\r\n':
-            #------------CAMBIAR----------------------------
-                request = 'ACK' + ' sip:' + ADDRESS + ' SIP/2.0'
+            #------------REVISAR OK METER SDP??----------------------------
+                fich_log.eventos('Received from', ip_px, port_px, Trying)
+                fich_log.eventos('Received from', ip_px, port_px, Ring)
+                fich_log.eventos('Received from', ip_px, port_px, OK)
+                request = 'ACK sip:' + Option + ' SIP/2.0'
                 print("Enviando: " + request)
-                my_socket.send(request)
+                my_socket.send(bytes(request,'utf-8'))
                 fich_log.eventos('Sent to', ip_px, port_px, request) 
         #para autentificar
-        elif Trying == '401':
+        elif Trying == 'SIP/2.0 401 Unauthorized':
             request = METODO + ' sip:' + username + ':' + str(port_server) + ' SIP/2.0\r\n'
             cabecera = 'Expires: ' + Option + '\r\n'
+#_________________________________________REVISAR--------------------------------
             m = hashlib.md5()
             m.update(passwd + nonce)
             response = m.hexdigest()
             Authorization = 'Authorization: response=' + response
             request_t = request + cabecera + Authorization
-            my_socket.send(request_t)
+            my_socket.send(bytes(request_t,'utf-8'))
             fich_log.eventos('Sent to', ip_px, port_px, request_t) 
 
 
