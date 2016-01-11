@@ -4,6 +4,7 @@
 import socketserver
 import sys
 import os
+import random
 from xml.sax import make_parser
 from xml.sax.handler import ContentHandler
 import uaclient
@@ -88,8 +89,35 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
                                 del self.dicc[Usuario]
                     self.register2json()
                     self.wfile.write(b'SIP/2.0 200 OK\r\n\r\n')
-            elif line.split()[0] != 'REGISTER':
-                print("El cliente nos manda " + linea)
+            elif line.split()[0] == 'INVITE':
+                #Obtenemos dirección y comprobamos si esta registrado
+                Address = linea.split()[1].split(':')[1]
+                Encontrado = False
+                for User in dicc.keys():
+                    if Address = User:
+                        Encontrado = True
+                if Encontrado = True:
+                    ip_r = dicc[Address][0]
+                    port_r = int(dicc[Address][1])
+                    #Conectamos con el receptor
+                    my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                    my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                    my_socket.connect((ip_px, port_px))
+                    my_socket.send(bytes(linea,'utf-8'))
+                else:
+                    request = b'SIP/2.0 404 User Not Found\r\n'
+                    self.wfile.write(request)
+                    fich_log.eventos('Sent to',ip , port, request)
+            elif line.split()[0] == 'BYE':
+            elif line.split()[0] == 'ACK':
+            elif line.split()[0] not in List:
+                request = b'SIP/2.0 405 Method Not Allowed'
+                self.wfile.write(request)
+                fich_log.eventos('Sent to',ip , port, request)
+            else:
+                request = b'SIP/2.0 400 Bad Request\r\n'
+                self.wfile.write(request)
+                fich_log.eventos('Sent to',ip , port, request)
             # Si no hay más líneas salimos del bucle infinito
             if not line:
                 break
@@ -98,7 +126,7 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
 if __name__ == "__main__":
     #Argumentos proxy
     Config = sys.argv[1]
-    List = ['INVITE', 'ACK', 'BYE']
+    List = ['REGISTER','INVITE', 'ACK', 'BYE']
         if len(sys.argv) != 1:
             print('Usage: python uaserver.py config')
             raise SystemExit
