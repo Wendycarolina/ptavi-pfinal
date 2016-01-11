@@ -159,4 +159,32 @@ if __name__ == "__main__":
     except IndexError:
         sys.exit('Usage: python proxy_registrar.py config')
 
+    parser = make_parser()
+    xml_hand = XMLHandler()
+    parser.setContentHandler(xml_hand)
+    try:
+        parser.parse(open(Config))
+    except IOError:
+        sys.exit('Usage: python uaclient.py config method option')
+    #Datos
+    for dicc in xml_hand.lista:
+        if dicc['name'] == 'server':
+            name = dicc['name']
+            ip_px = dicc['ip']
+            port_px = int(dicc['puerto'])
+        elif dic['name'] == 'database':
+            user_path = dicc['path']
+            passwd_path = dicc['passwdpath']
+        elif dicc['name'] == 'log':
+            log_path = dicc['path']
+
+    serv = socketserver.UDPServer((ip_px, port_px ), SIPRegisterHandler)
+    fich_log = uaclient.Log(log_path)
+    fich_log.eventos('Starting','', '', '')
+    print('Server MiServidorBingBang listening at port ' + str(port_px) + '...')
+    serv.serve_forever()
+
+
+
+
 
