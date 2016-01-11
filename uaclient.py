@@ -5,6 +5,7 @@ import socket
 import sys
 import hashlib
 import os
+import time
 from uaserver import XMLHandler#crear handler xml como en práctica3
 from xml.sax import make_parser
 from xml.sax.handler import ContentHandler
@@ -135,10 +136,11 @@ if __name__ == "__main__":
                 fich_log.eventos('Sent to', ip_px, port_px, request) 
         #para autentificar
         elif Trying == 'SIP/2.0 401 Unauthorized':
+            nonce = Ring.split('=')[0]
             request = METODO + ' sip:' + username + ':' + str(port_server) + ' SIP/2.0\r\n'
             cabecera = 'Expires: ' + Option + '\r\n'
-#_________________________________________REVISAR--------------------------------
             m = hashlib.md5()
+            #---------------------REVISAR SI NONCE ESTA EN BYTES------------------
             m.update(passwd + nonce)
             response = m.hexdigest()
             Authorization = 'Authorization: response=' + response
