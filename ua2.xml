@@ -1,0 +1,8 @@
+<config>
+        <account username='vanesa@urjc.es' passwd='hola2'/>
+        <uaserver ip='127.0.0.1' puerto='2600'/>
+        <rtpaudio puerto='3200'/>
+        <regproxy ip='127.0.0.1' puerto='3500'/>
+        <log path='log_ua2.txt'/>
+        <audio path='cancion.mp3'/>
+</config>
