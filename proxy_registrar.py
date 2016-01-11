@@ -60,28 +60,34 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
             # Leyendo línea a línea lo que nos envía el cliente
             line = self.rfile.read()
             fich_log.eventos('Receiving from', ip, port, line)
-            #linea = line.decode('utf-8')
-            if line.split()[0] == 'REGISTER':
+            linea = line.decode('utf-8')
+            if linea.split()[0] == 'REGISTER':
                 #Creo y guardo datos usuario
-                Usuario = linea.split()[2]
-                IP = self.client_address[0]
-                Expires = float(linea.split(':')[-1])
-                Time = time.time()
-                Time_exp = Time + Expires
-                fecha = '%Y-%m-%d %H:%M:%S'
-                Time_user = time.strftime(fecha, time.gmtime(Time_exp))
-                Datos_User = [IP, port, Time_user]
-                self.dicc[Usuario] = Datos_User
-                #Compruebo si el usuario se ha expiradoo se da de baja
-                if Expires == 0:
-                    del self.dicc[Usuario]
-                for User in self.dicc:
+                Cabecera = linea.split('\r\n',:2)
+                if 'Authorization' not in Cabecera:
+                    nonce = random.getrandbits(1024)
+                    Unauthorized = b'SIP/2.0 401 Unauthorized\r\n'
+                    Unauthorized += b'WWW Authenticate: nonce=' + nonce
+                    self.wfile.write(Unauthorized)
+                elif 'Authorization' in Cabecera:
+                    IP = self.client_address[0]
+                    Expires = float(linea.split(':')[-1])
                     Time = time.time()
-                    if Time >= Time_exp:
-                        if Usuario in self.dicc:
-                            del self.dicc[Usuario]
-                self.register2json()
-                self.wfile.write(b'SIP/2.0 200 OK\r\n\r\n')
+                    Time_exp = Time + Expires
+                    fecha = '%Y-%m-%d %H:%M:%S'
+                    Time_user = time.strftime(fecha, time.gmtime(Time_exp))
+                    Datos_User = [IP, port, Time_user]
+                    self.dicc[Usuario] = Datos_User
+                    #Compruebo si el usuario se ha expiradoo se da de baja
+                    if Expires == 0:
+                        del self.dicc[Usuario]
+                    for User in self.dicc:
+                        Time = time.time()
+                        if Time >= Time_exp:
+                            if Usuario in self.dicc:
+                                del self.dicc[Usuario]
+                    self.register2json()
+                    self.wfile.write(b'SIP/2.0 200 OK\r\n\r\n')
             elif line.split()[0] != 'REGISTER':
                 print("El cliente nos manda " + linea)
             # Si no hay más líneas salimos del bucle infinito
