@@ -5,6 +5,8 @@ import socketserver
 import socket
 import sys
 import os
+import json
+import time
 import random
 from xml.sax import make_parser
 from xml.sax.handler import ContentHandler
@@ -22,7 +24,7 @@ class XMLHandlerP(ContentHandler):
     def startElement(self, name, attrs):
         dicc = {}
         if name in self.etiqueta:
-            dicc['name'] = name
+            dicc['etiqueta'] = name
             for i in self.atributo[name]:
                 dicc[i] = attrs.get(i, "")
             self.lista.append(dicc)
@@ -58,95 +60,103 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
         #self.json2registered()
         ip = self.client_address[0]
         port = str(self.client_address[1])
+        self.json2registered()
         while 1:
             # Leyendo línea a línea lo que nos envía el cliente
             line = self.rfile.read()
-            fich_log.eventos('Receiving from', ip, port, line)
+            #fich_log.eventos('Receiving from', ip, port, line)
             linea = line.decode('utf-8')
-            if linea.split()[0] == 'REGISTER':
-                #Creo y guardo datos usuario
-                Cabecera = linea.split('\r\n')
-                if 'Authorization' not in Cabecera:
-                    nonce = random.getrandbits(1024)
-                    Unauthorized = b'SIP/2.0 401 Unauthorized\r\n'
-                    Unauthorized += b'WWW Authenticate: nonce=' + nonce
-                    self.wfile.write(Unauthorized)
-                elif 'Authorization' in Cabecera:
-                    IP = self.client_address[0]
-                    Expires = float(linea.split(':')[-1])
-                    Time = time.time()
-                    Time_exp = Time + Expires
-                    fecha = '%Y-%m-%d %H:%M:%S'
-                    Time_user = time.strftime(fecha, time.gmtime(Time_exp))
-                    Datos_User = [IP, port, Time_user]
-                    self.dicc[Usuario] = Datos_User
-                    #Compruebo si el usuario se ha expiradoo se da de baja
-                    if Expires == 0:
-                        del self.dicc[Usuario]
-                    for User in self.dicc:
+            if linea != '':
+                if linea.split()[0] == 'REGISTER':
+                    #Creo y guardo datos usuario
+                    print(linea.split()[0])
+                    Cabecera = linea.split('\r\n')
+                    print(Cabecera)
+                    if 'Authorization' not in Cabecera[2]:
+                        nonce = random.getrandbits(1024)
+                        Unauthorized = b'SIP/2.0 401 Unauthorized\r\n'
+                        Unauthorized += b'WWW Authenticate: nonce='
+                        Unauthorized += bytes(str(nonce), 'utf-8')
+                        self.wfile.write(Unauthorized)
+                    elif 'Authorization' in Cabecera[2]:
+                        print('**********Autorizacion*********')
+                        Usuario = Cabecera[0].split(':')[1]
+                        Expires = float(Cabecera[1].split(':')[1])
                         Time = time.time()
-                        if Time >= Time_exp:
-                            if Usuario in self.dicc:
-                                del self.dicc[Usuario]
-                    self.register2json()
-                    self.wfile.write(b'SIP/2.0 200 OK\r\n\r\n')
-            elif line.split()[0] == 'INVITE':
-                #Obtenemos dirección y comprobamos si esta registrado
-                Address = linea.split()[1].split(':')[1]
-                Encontrado = False
-                for User in dicc.keys():
-                    if Address == User:
-                        Encontrado = True
-                if Encontrado == True:
-                    ip_r = dicc[Address][0]
-                    port_r = int(dicc[Address][1])
-                    #Conectamos con el receptor
-                    my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                    my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                    my_socket.connect((ip_r, port_r))
-                    my_socket.send(bytes(linea,'utf-8'))
-                    fich_log.eventos('Sent to',ip_r , port_r, linea)
-                    try:
-                        data = my_socket.recv(1024)
-                        print('Recibido -- ', data.decode('utf-8'))
-                        fich_log.eventos('Receiving from',ip_r , port_r, data)
-                    except socket.error:
-                        sys.exit('Error: No server listening at '+ ip_r + ' port ' + str(port_r))
-                    self.wfile.write(data)
-                    print('----------------'+data)
-                    fich_log.eventos('Sent to',ip_r , port_r, data)
-                else:
-                    request = b'SIP/2.0 404 User Not Found\r\n'
+                        Time_exp = Time + Expires
+                        fecha = '%Y-%m-%d %H:%M:%S'
+                        Time_user = time.strftime(fecha, time.gmtime(Time_exp))
+                        Datos_User = [ip, port, Time_user]
+                        self.dicc[Usuario] = Datos_User
+                        #Compruebo si el usuario se ha expiradoo se da de baja
+                        if Expires == 0:
+                            del self.dicc[Usuario]
+                        for User in self.dicc:
+                            Time = time.time()
+                            if Time >= Time_exp:
+                                if Usuario in self.dicc:
+                                    del self.dicc[Usuario]
+                        self.register2json()
+                        self.wfile.write(b'SIP/2.0 200 OK\r\n\r\n')
+                        print('********OK********')
+                elif line.split()[0] == 'INVITE':
+                    #Obtenemos dirección y comprobamos si esta registrado
+                    Address = linea.split()[1].split(':')[1]
+                    print(Address)
+                    Encontrado = False
+                    for User in dicc.keys():
+                        if Address == User:
+                            Encontrado = True
+                    if Encontrado == True:
+                        ip_r = dicc[Address][0]
+                        port_r = int(dicc[Address][1])
+                        #Conectamos con el receptor
+                        my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                        my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                        my_socket.connect((ip_r, port_r))
+                        my_socket.send(bytes(linea,'utf-8'))
+                        fich_log.eventos('Sent to',ip_r , port_r, linea)
+                        try:
+                            data = my_socket.recv(1024)
+                            print('Recibido -- ', data.decode('utf-8'))
+                            fich_log.eventos('Receiving from',ip_r , port_r, data)
+                        except socket.error:
+                            sys.exit('Error: No server listening at '+ ip_r + ' port ' + str(port_r))
+                        self.wfile.write(data)
+                        print('----------------'+data)
+                        fich_log.eventos('Sent to',ip_r , port_r, data)
+                    else:
+                        request = b'SIP/2.0 404 User Not Found\r\n'
+                        self.wfile.write(request)
+                        fich_log.eventos('Sent to',ip , port, request)
+                elif line.split()[0] == 'BYE' or 'ACK':
+                    Address = linea.split()[1].split(':')[1]
+                    Encontrado = False
+                    for User in dicc.keys():
+                        if Address == User:
+                            Encontrado = True
+                    if Encontrado == True:
+                        ip_r = dicc[Address][0]
+                        port_r = int(dicc[Address][1])
+                        #Conectamos con el receptor
+                        my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                        my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                        my_socket.connect((ip_px, port_px))
+                        my_socket.send(bytes(linea,'utf-8'))
+                        print('----------------222'+data)
+                        fich_log.eventos('Sent to',ip_r , port_r, linea)
+                    else:
+                        request = b'SIP/2.0 404 User Not Found\r\n'
+                        self.wfile.write(request)
+                        fich_log.eventos('Sent to',ip , port, request)
+                elif line.split()[0] not in List:
+                    request = b'SIP/2.0 405 Method Not Allowed'
                     self.wfile.write(request)
                     fich_log.eventos('Sent to',ip , port, request)
-            elif line.split()[0] == 'BYE' or 'ACK':
-                Address = linea.split()[1].split(':')[1]
-                Encontrado = False
-                for User in dicc.keys():
-                    if Address == User:
-                        Encontrado = True
-                if Encontrado == True:
-                    ip_r = dicc[Address][0]
-                    port_r = int(dicc[Address][1])
-                    #Conectamos con el receptor
-                    my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                    my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                    my_socket.connect((ip_px, port_px))
-                    my_socket.send(bytes(linea,'utf-8'))
-                    print('----------------222'+data)
-                    fich_log.eventos('Sent to',ip_r , port_r, linea)
                 else:
-                    request = b'SIP/2.0 404 User Not Found\r\n'
+                    request = b'SIP/2.0 400 Bad Request\r\n'
                     self.wfile.write(request)
                     fich_log.eventos('Sent to',ip , port, request)
-            elif line.split()[0] not in List:
-                request = b'SIP/2.0 405 Method Not Allowed'
-                self.wfile.write(request)
-                fich_log.eventos('Sent to',ip , port, request)
-            else:
-                request = b'SIP/2.0 400 Bad Request\r\n'
-                self.wfile.write(request)
-                fich_log.eventos('Sent to',ip , port, request)
             # Si no hay más líneas salimos del bucle infinito
             if not line:
                 break
@@ -172,20 +182,20 @@ if __name__ == "__main__":
         sys.exit('Usage: python uaclient.py config method option')
     #Datos
     for dicc in xml_hand.lista:
-        if dicc['name'] == 'server':
+        if dicc['etiqueta'] == 'server':
+            print("server")
             name = dicc['name']
             ip_px = dicc['ip']
             port_px = int(dicc['puerto'])
-        elif dicc['name'] == 'database':
+        elif dicc['etiqueta'] == 'database':
             user_path = dicc['path']
             passwd_path = dicc['passwdpath']
-        elif dicc['name'] == 'log':
+        elif dicc['etiqueta'] == 'log':
             log_path = dicc['path']
-
-    serv = socketserver.UDPServer(('', 3500), SIPRegisterHandler)
+    serv = socketserver.UDPServer((ip_px, port_px), SIPRegisterHandler)
     fich_log = uaclient.Log(log_path)
     fich_log.eventos('Starting','', '', '')
-    print('Server MiServidorBingBang listening at port ' + str(3500) + '...')
+    print('Server MiServidorBingBang listening at port ' + str(port_px) + '...')
     serv.serve_forever()
 
 #-----------------DUDAS--------------
