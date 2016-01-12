@@ -30,7 +30,7 @@ class Log:
         elif evento == 'Sent to':
             lines = Time_user + ' ' + evento + ':' + str(port) + ':' + str(messag)
         elif evento == 'Received from':
-            lines = Time_user + ' ' + evento + ' ' + ip + ':' + str(port) + ':' + messag.decode('utf-8')
+            lines = Time_user + ' ' + evento + ' ' + ip + ':' + str(port) + ':' + messag
         elif evento == 'Error':
             lines = Time_user + '' + evento + messag.decode('utf-8')
         else:
@@ -118,7 +118,7 @@ if __name__ == "__main__":
         #Vemos lo que recibimos
         data = my_socket.recv(1024)
         print('Recibido -- ', data.decode('utf-8'))
-        fich_log.eventos('Received from', ip_px, port_px, data)
+        fich_log.eventos('Received from', ip_px, port_px, data.decode('utf-8'))
         Data = data.split()
         print(METODO)
         print(Data)
