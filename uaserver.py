@@ -39,40 +39,40 @@ class EchoHandler(socketserver.DatagramRequestHandler):
         while 1:
             # Leyendo línea a línea lo que nos envía el cliente
             line = self.rfile.read()
+            linea = line.decode('utf-8')
             print("El cliente nos manda " + linea)
             #Datos para poder responder cliente o proxi
             ip_client = self.client_address[0]
             port_client = self.client_address[1]
-            fich_log.eventos('Receiving from',ip_client , port_client, line)
+            fich_log.eventos('Received from',ip_client , port_client, linea)
             if linea != '':
                 Metodo = linea.split()[0]
                 print(Metodo)
                 #Mensajes que envío
                 if Metodo == 'INVITE':
+                    print('****************INVITE*******')
                     message = b'SIP/2.0 100 TRYING\r\n\r\n'
-                    self.wfile.write(message)
-                    print('---------------ssss'+data)
-                    fich_log.eventos('Sent to',ip_client , port_client, message)
-                    message = b'SIP/2.0 180 RINGING\r\n\r\n'
-                    self.wfile.write(message)
-                    fich_log.eventos('Sent to',ip_client , port_client, message)
-                    message = b'SIP/2.0 200 OK\r\n'
+                    message +=b'SIP/2.0 180 RINGING\r\n\r\n'
+                    message += b'SIP/2.0 200 OK\r\n'
                     cabecera = b'Content-Type: application/sdp\r\n\r\n'
                     #Estructura SDP
-                    sdp = b'v=0\r\n' + b'o=' + username + ' ' + ip_server + '\r\n' \
-                     + b's=MiSesion\r\n' + b't=0\r\n' + b'm=audio ' + str(port_rtp)\
-                     + b' RTP'
-                    message = message + cabecera + sdp
+                    sdp = 'v=0\r\n' + 'o=' + username + ' ' + ip_client + '\r\n' \
+                     + 's=MiSesion\r\n' + 't=0\r\n' + 'm=audio ' + str(port_rtp) + ' RTP'
+                    message = message + cabecera + bytes(sdp, 'utf-8')
                     self.wfile.write(message)
+                    print(message)
                     fich_log.eventos('Sent to',ip_client , port_client, message)
                 elif Metodo == 'ACK':
                     #ip y puerto obtenidos mediante descripción de la sesion (SDP)
                     #REVISAR!!!!!!!!!!
-                    aEjecutar = './mp32rtp -i ' + ip_server + ' -p ' + port_rtp
+                    aEjecutar = './mp32rtp -i ' + ip_client + ' -p ' + port_rtp
                     aEjecutar += '<' + audio_path
                     print("Vamos a ejecutar", aEjecutar)
                     os.system(aEjecutar)
+                    fich_log.eventos('Sent to', ip_client, + port_rtp, 'audio')
+                    
                 elif Metodo == 'BYE':
+                    print('***********BYE*********')
                     message = b'SIP/2.0 200 OK\r\n\r\n'
                     self.wfile.write(message)
                     fich_log.eventos('Sent to',ip_client , port_client, message)
@@ -131,6 +131,5 @@ if __name__ == "__main__":
     serv.serve_forever()
 
 #-------------------------DUDAS----------------------------
-#La autentificación tambien debe hacerla?? en el esquema aparece
 
 
