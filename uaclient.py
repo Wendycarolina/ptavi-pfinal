@@ -17,7 +17,7 @@ class Log:
     
         self.fich_log = fich_log
 
-    def eventos(self, evento, ip, port, messag,):
+    def eventos(self, evento, ip, port, messag):
     #Eventos : escribe en el log
         log = open(self.fich_log, 'a')
         Time = time.time()
@@ -28,11 +28,13 @@ class Log:
         elif evento == 'Finishing':
             lines = Time_user + ' Finishing.'
         elif evento == 'Sent to':
-            lines = Time_user + ' ' + evento + ':' + str(port) + ':' + messag
+            lines = Time_user + ' ' + evento + ':' + str(port) + ':' + str(messag)
         elif evento == 'Received from':
             lines = Time_user + ' ' + evento + ' ' + ip + ':' + str(port) + ':' + messag.decode('utf-8')
         elif evento == 'Error':
             lines = Time_user + '' + evento + messag.decode('utf-8')
+        else:
+            lines = "Error: algo raro pasa aqui " + evento + " " + ip + " " + port + " " + str(messag)
         log.write(lines)    
         log.close()
 
@@ -84,7 +86,8 @@ if __name__ == "__main__":
              log_path = dicc['path']
          elif dicc['name'] == 'audio':
              audio_path = dicc['path']
-
+    print(ip_px)
+    print(port_px)
     # Creamos el socket, lo configuramos y lo atamos a un servidor/puerto del proxi
     my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -101,12 +104,11 @@ if __name__ == "__main__":
     elif METODO == 'INVITE':
          request = METODO + ' sip:' + Option + ' SIP/2.0\r\n'
          cabecera = 'Content-Type: application/sdp\r\n\r\n'
-    #Estructura SDP
+        #Estructura SDP
          sdp = 'v=0\r\n' + 'o=' + username + ' ' + ip_server + '\r\n' \
              + 's=MiSesion\r\n' + 't=0\r\n' + 'm=audio ' + str(port_rtp)\
              + ' RTP'
          request_t = request + cabecera + sdp
- 
     elif METODO == 'BYE':
          request_t = METODO + ' sip:' + Option + ' SIP/2.0\r\n\r\n'
     #Enviamos petición
@@ -120,11 +122,11 @@ if __name__ == "__main__":
         Data = data.split()
         print(METODO)
         print(Data)
-        Trying = Data[0].decode('utf-8')
-        Ring = Data[1].decode('utf-8')
-        Ok = Data[2].decode('utf-8')
-        print(Trying)
+        
         if METODO == 'REGISTER':
+            Trying = Data[0].decode('utf-8')
+            Ring = Data[1].decode('utf-8')
+            Ok = Data[2].decode('utf-8')
             if Ok == 'Unauthorized':
                 pas = Data[5].decode('utf-8')
                 nonce = pas.split('=')[1]
@@ -139,11 +141,14 @@ if __name__ == "__main__":
                 request_t = request + cabecera + Authorization
                 my_socket.send(bytes(request_t,'utf-8'))
                 fich_log.eventos('Sent to', ip_px, port_px, request_t)
-                data = my_socket.recv(1024)
-                print('______________' + data.decode('utf-8'))
+                dato = my_socket.recv(1024)
+                print(dato.decode('utf-8'))
 
 
         if METODO == 'INVITE':
+            Ok = Data[2].decode('utf-8')
+            print('******INVITE*****')
+            print(Data)
             if Ok == 'SIP/2.0 100 TRYING\r\n\r\n':
                 if Ring == 'SIP/2.0 180 RINGING\r\n\r\n' and Ok == 'SIP/2.0 200 OK\r\n\r\n':
                 #------------REVISAR SDP----------------------------
@@ -161,7 +166,6 @@ if __name__ == "__main__":
                     print("Vamos a ejecutar", aEjecutar)
                     os.system(aEjecutar)
                     fich_log.eventos('Sent to', Ip_serv, + port, 'audio')
-
 
 
         # Cerramos todo
