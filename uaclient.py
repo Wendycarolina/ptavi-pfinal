@@ -24,16 +24,16 @@ class Log:
         fecha = '%Y-%m-%d %H:%M:%S'
         Time_user = time.strftime(fecha, time.gmtime(Time))
         if evento == 'Starting':
-            line = Time_user + 'Starting...'
+            lines = Time_user + ' Starting...'
         elif evento == 'Finishing':
-            line = Time_user + 'Finishing.'
+            lines = Time_user + ' Finishing.'
         elif evento == 'Sent to':
-            line = Time_user + evento + ':' + str(port) + ':' + messag  
+            lines = Time_user + ' ' + evento + ':' + str(port) + ':' + messag
         elif evento == 'Received from':
-            line = Time_user + evento + ip + ':' + str(port) + ':' + messag.decode('utf-8')
+            lines = Time_user + ' ' + evento + ' ' + ip + ':' + str(port) + ':' + messag.decode('utf-8')
         elif evento == 'Error':
-            line = Time_user + messag
-        log.write(line)    
+            lines = Time_user + '' + evento + messag.decode('utf-8')
+        log.write(lines)    
         log.close()
 
 
@@ -118,12 +118,33 @@ if __name__ == "__main__":
         print('Recibido -- ', data.decode('utf-8'))
         fich_log.eventos('Received from', ip_px, port_px, data)
         Data = data.split()
+        print(METODO)
+        print(Data)
+        Trying = Data[0].decode('utf-8')
+        Ring = Data[1].decode('utf-8')
+        Ok = Data[2].decode('utf-8')
+        print(Trying)
+        if METODO == 'REGISTER':
+            if Ok == 'Unauthorized':
+                pas = Data[5].decode('utf-8')
+                nonce = pas.split('=')[1]
+                print('--------' + nonce)
+                request = METODO + ' sip:' + username + ':' + str(port_server) + ' SIP/2.0\r\n'
+                cabecera = 'Expires: ' + str(Option) + '\r\n'
+                m = hashlib.md5()
+                #---------------------REVISAR SI NONCE ESTA EN BYTES------------------
+                m.update(bytes(passwd + nonce, 'utf-8'))
+                response = m.hexdigest()
+                Authorization = 'Authorization: response=' + response
+                request_t = request + cabecera + Authorization
+                my_socket.send(bytes(request_t,'utf-8'))
+                fich_log.eventos('Sent to', ip_px, port_px, request_t)
+                data = my_socket.recv(1024)
+                print('______________' + data.decode('utf-8'))
+
+
         if METODO == 'INVITE':
-            Trying = Data[0].decode('utf-8')
-            Ring = Data[1].decode('utf-8')
-            Ok = Data[2].decode('utf-8')
-            #Respuesta si recibe un Trying, Ring y OK
-            if Trying == 'SIP/2.0 100 TRYING\r\n\r\n':
+            if Ok == 'SIP/2.0 100 TRYING\r\n\r\n':
                 if Ring == 'SIP/2.0 180 RINGING\r\n\r\n' and Ok == 'SIP/2.0 200 OK\r\n\r\n':
                 #------------REVISAR SDP----------------------------
                     fich_log.eventos('Received from', ip_px, port_px, Trying)
@@ -139,18 +160,8 @@ if __name__ == "__main__":
                     aEjecutar += '<' + audio_path
                     print("Vamos a ejecutar", aEjecutar)
                     os.system(aEjecutar)
-            elif Trying == 'SIP/2.0 401 Unauthorized':
-                nonce = Ring.split('=')[0]
-                request = METODO + ' sip:' + username + ':' + str(port_server) + ' SIP/2.0\r\n'
-                cabecera = 'Expires: ' + Option + '\r\n'
-                m = hashlib.md5()
-                #---------------------REVISAR SI NONCE ESTA EN BYTES------------------
-                m.update(passwd + nonce)
-                response = m.hexdigest()
-                Authorization = 'Authorization: response=' + response
-                request_t = request + cabecera + Authorization
-                my_socket.send(bytes(request_t,'utf-8'))
-                fich_log.eventos('Sent to', ip_px, port_px, request_t) 
+                    fich_log.eventos('Sent to', Ip_serv, + port, 'audio')
+
 
 
         # Cerramos todo
