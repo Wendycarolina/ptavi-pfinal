@@ -46,41 +46,29 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
         with open('registered.json', 'w') as fich:
             json.dump(self.dicc, fich, sort_keys=True, indent=4)
 
-    def json2registered(self):
-        """
-        Comprueba si existe un archivo
-        """
-        if os.path.exists('registered.json'):
-            self.dicc = json.loads(open('registered.json').read())
-        else:
-            self.dicc = {}
     def handle(self):
         # Escribe dirección y puerto del cliente (de tupla client_address)
-        #self.json2registered()
         ip = self.client_address[0]
         port = str(self.client_address[1])
-        print(port)
-        self.json2registered()
         while 1:
             # Leyendo línea a línea lo que nos envía el cliente
             line = self.rfile.read()
-            fich_log.eventos('Receiving from', ip, port, line)
             linea = line.decode('utf-8')
             if linea != '':
+                fich_log.eventos('Received from', ip, port, linea)
                 print(linea)
                 if linea.split()[0] == 'REGISTER':
+                    print('**********REGISTER*********')
                     #Creo y guardo datos usuario
-                    print(linea.split()[0])
                     Cabecera = linea.split('\r\n')
-                    print(Cabecera)
                     if 'Authorization' not in Cabecera[2]:
                         nonce = random.getrandbits(1024)
                         Unauthorized = b'SIP/2.0 401 Unauthorized\r\n'
                         Unauthorized += b'WWW Authenticate: nonce='
                         Unauthorized += bytes(str(nonce), 'utf-8')
                         self.wfile.write(Unauthorized)
+                        fich_log.eventos('Sent to',ip , port, Unauthorized.decode('utf-8'))
                     elif 'Authorization' in Cabecera[2]:
-                        print('**********Autorizacion*********')
                         Usuario = Cabecera[0].split(':')[1]
                         Expires = float(Cabecera[1].split(':')[1])
                         Time = time.time()
@@ -91,7 +79,6 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
                         port_s = port_a.split(' ')[0]
                         Datos_User = [ip, port_s, Time_user]
                         self.dicc[Usuario] = Datos_User
-                        print(self.dicc)
                         #Compruebo si el usuario se ha expiradoo se da de baja
                         if Expires == 0:
                             del self.dicc[Usuario]
@@ -101,8 +88,9 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
                                 if Usuario in self.dicc:
                                     del self.dicc[Usuario]
                         self.register2json()
-                        self.wfile.write(b'SIP/2.0 200 OK\r\n\r\n')
-                        print('********OK********')
+                        Ok = b'SIP/2.0 200 OK\r\n\r\n'
+                        self.wfile.write(Ok)
+                        fich_log.eventos('Sent to',ip , port, Ok.decode('utf-8'))
                 elif linea.split()[0] == 'INVITE':
                     print('**********INVITE*********')
                     #Obtenemos dirección y comprobamos si esta registrado
@@ -121,7 +109,6 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
                         my_socket.connect((ip_r, port_r))
                         my_socket.send(bytes(linea,'utf-8'))
                         fich_log.eventos('Sent to',ip_r , port_r, linea)
-                        print(port_r)
                         try:
                             data = my_socket.recv(1024)
                             print('Recibido:\r\n', data.decode('utf-8'))
@@ -129,15 +116,13 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
                         except socket.error:
                             sys.exit('Error: No server listening at '+ ip_r + ' port ' + str(port_r))
                         self.wfile.write(data)
-                        print('Enviando mensaje recibido:\r\n'+data.decode('utf-8'))
+                        print('Enviando mensaje recibido:\r\n' + data.decode('utf-8'))
                         fich_log.eventos('Sent to',ip_r , port_r, data.decode('utf-8'))
                     else:
-                        print('**********INVITE final*********')
                         request = b'SIP/2.0 404 User Not Found\r\n'
                         self.wfile.write(request)
-                        fich_log.eventos('Sent to',ip , port, str(request))
+                        fich_log.eventos('Sent to',ip , port, request.decode('utf-8'))
                 elif linea.split()[0] == 'BYE' or linea.split()[0] == 'ACK':
-                    print('********** BYE ACK*********')
                     Address = linea.split()[1].split(':')[1]
                     if linea.split()[0] == 'BYE':
                         print('Terminando llamada con: ' + Address)
@@ -160,18 +145,17 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
                         self.wfile.write(data)
                         fich_log.eventos('Sent to',ip , port, data.decode('utf-8'))
                     else:
-                        print('**********BYE ACK*********')
                         request = b'SIP/2.0 404 User Not Found\r\n'
                         self.wfile.write(request)
-                        fich_log.eventos('Sent to',ip , port, request)
+                        fich_log.eventos('Sent to',ip , port, request.decode('utf-8'))
                 elif linea.split()[0] not in List:
                     request = b'SIP/2.0 405 Method Not Allowed'
                     self.wfile.write(request)
-                    fich_log.eventos('Sent to',ip , port, request)
+                    fich_log.eventos('Sent to',ip , port, request.decode('utf-8'))
                 else:
                     request = b'SIP/2.0 400 Bad Request\r\n'
                     self.wfile.write(request)
-                    fich_log.eventos('Sent to',ip , port, request)
+                    fich_log.eventos('Sent to',ip , port, request.decode('utf-8'))
             # Si no hay más líneas salimos del bucle infinito
             if not line:
                 break
