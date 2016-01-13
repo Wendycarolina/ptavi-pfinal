@@ -117,20 +117,17 @@ if __name__ == "__main__":
     try:
         #Vemos lo que recibimos
         data = my_socket.recv(1024)
-        print('Recibido -- ', data.decode('utf-8'))
-        fich_log.eventos('Received from', ip_px, port_px, data.decode('utf-8'))
+        print('Recibido:\r\n', data.decode('utf-8'))
         Data = data.split()
-        print(METODO)
         if METODO == 'REGISTER':
+            fich_log.eventos('Received from', ip_px, port_px, data.decode('utf-8'))
             Authorization = Data[2].decode('utf-8')
             if Authorization == 'Unauthorized':
                 pas = Data[5].decode('utf-8')
                 nonce = pas.split('=')[1]
-                print('--------' + nonce)
                 request = METODO + ' sip:' + username + ':' + str(port_server) + ' SIP/2.0\r\n'
                 cabecera = 'Expires: ' + str(Option) + '\r\n'
                 m = hashlib.md5()
-                #---------------------REVISAR SI NONCE ESTA EN BYTES------------------
                 m.update(bytes(passwd + nonce, 'utf-8'))
                 response = m.hexdigest()
                 Authorization = 'Authorization: response=' + response
@@ -139,44 +136,48 @@ if __name__ == "__main__":
                 fich_log.eventos('Sent to', ip_px, port_px, request_t)
                 dato = my_socket.recv(1024)
                 print(dato.decode('utf-8'))
-
+                fich_log.eventos('Received from', ip_px, port_px, dato.decode('utf-8'))
 
         elif METODO == 'INVITE':
             Trying = Data[1].decode('utf-8')
-            print('******INVITE*****')
-            print(Data)
             if Trying == '100':
                 Ring = Data[4].decode('utf-8')
                 Ok = Data[7].decode('utf-8')
                 if Ring == '180' and Ok == '200':
-                #------------REVISAR SDP----------------------------
-                    fich_log.eventos('Received from', ip_px, port_px, Trying)
-                    fich_log.eventos('Received from', ip_px, port_px, Ring)
-                    fich_log.eventos('Received from', ip_px, port_px, Ok)
+                #------------SDP----------------------------
+                    dat = data.decode('utf-8')
+                    Try = dat.split('\r\n\r\n')[0]
+                    Rin = dat.split('\r\n\r\n')[1]
+                    O1 = dat.split('\r\n\r\n')[2]
+                    O2 = dat.split('\r\n\r\n')[3]
+                    fich_log.eventos('Received from', ip_px, port_px, Try)
+                    fich_log.eventos('Received from', ip_px, port_px, Rin)
+                    fich_log.eventos('Received from', ip_px, port_px, O1+O2)
                     request = 'ACK sip:' + Option + ' SIP/2.0'
-                    print("Enviando: " + request)
                     my_socket.send(bytes(request,'utf-8'))
+                    print("Enviando: " + request)
                     fich_log.eventos('Sent to', ip_px, port_px, request) 
                     Ip_serv = Data[13].decode('utf-8')
-                    print(Ip_serv)
                     port = Data[17].decode('utf-8')
-                    print(port)
                     aEjecutar = './mp32rtp -i ' + Ip_serv + ' -p ' + port
                     aEjecutar += '<' + audio_path
                     print("Vamos a ejecutar", aEjecutar)
                     os.system(aEjecutar)
-                    fich_log.eventos('Sent to', Ip_serv, port, 'audio')
+                    fich_log.eventos('Sent to', Ip_serv, port, 'cancion.mp3')
             elif Trying == '404':
-                print(Data)
+                print(data)
                 fich_log.eventos('Received from', ip_px, port_px, data.decode('utf-8'))
        
         else:
+            if data != '':
+                fich_log.eventos('Received from', ip_px, port_px, data.decode('utf-8'))
             print(data)
+            fich_log.eventos('Finishing','', '', '')
         # Cerramos todo
+        
         my_socket.close()
         print("Fin.")
+         
     except socket.error:
         sys.exit('Error: No server listening at port ' + str(port_server))
-
-#Error en el proxy del uaclient line referenced before..
 
