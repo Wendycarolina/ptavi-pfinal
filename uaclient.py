@@ -35,7 +35,7 @@ class Log:
             lines = Time_user + '' + evento + messag.decode('utf-8')
         else:
             lines = "Error: algo raro pasa aqui " + evento + " " + ip + " " + port + " " + str(messag)
-        log.write(lines)    
+        log.write(lines+ '\r\n')    
         log.close()
 
 
@@ -121,13 +121,9 @@ if __name__ == "__main__":
         fich_log.eventos('Received from', ip_px, port_px, data.decode('utf-8'))
         Data = data.split()
         print(METODO)
-        print(Data)
-        
         if METODO == 'REGISTER':
-            Trying = Data[0].decode('utf-8')
-            Ring = Data[1].decode('utf-8')
-            Ok = Data[2].decode('utf-8')
-            if Ok == 'Unauthorized':
+            Authorization = Data[2].decode('utf-8')
+            if Authorization == 'Unauthorized':
                 pas = Data[5].decode('utf-8')
                 nonce = pas.split('=')[1]
                 print('--------' + nonce)
@@ -145,36 +141,42 @@ if __name__ == "__main__":
                 print(dato.decode('utf-8'))
 
 
-        if METODO == 'INVITE':
-            Ok = Data[2].decode('utf-8')
+        elif METODO == 'INVITE':
+            Trying = Data[1].decode('utf-8')
             print('******INVITE*****')
             print(Data)
-            if Ok == 'SIP/2.0 100 TRYING\r\n\r\n':
-                if Ring == 'SIP/2.0 180 RINGING\r\n\r\n' and Ok == 'SIP/2.0 200 OK\r\n\r\n':
+            if Trying == '100':
+                Ring = Data[4].decode('utf-8')
+                Ok = Data[7].decode('utf-8')
+                if Ring == '180' and Ok == '200':
                 #------------REVISAR SDP----------------------------
                     fich_log.eventos('Received from', ip_px, port_px, Trying)
                     fich_log.eventos('Received from', ip_px, port_px, Ring)
-                    fich_log.eventos('Received from', ip_px, port_px, OK)
+                    fich_log.eventos('Received from', ip_px, port_px, Ok)
                     request = 'ACK sip:' + Option + ' SIP/2.0'
                     print("Enviando: " + request)
                     my_socket.send(bytes(request,'utf-8'))
                     fich_log.eventos('Sent to', ip_px, port_px, request) 
-                    Ip_serv = Ok.split('o=').split(' ')[0]
-                    port = Ok.split('m=audio ')[0]
+                    Ip_serv = Data[13].decode('utf-8')
+                    print(Ip_serv)
+                    port = Data[17].decode('utf-8')
+                    print(port)
                     aEjecutar = './mp32rtp -i ' + Ip_serv + ' -p ' + port
                     aEjecutar += '<' + audio_path
                     print("Vamos a ejecutar", aEjecutar)
                     os.system(aEjecutar)
-                    fich_log.eventos('Sent to', Ip_serv, + port, 'audio')
-
-
+                    fich_log.eventos('Sent to', Ip_serv, port, 'audio')
+            elif Trying == '404':
+                print(Data)
+                fich_log.eventos('Received from', ip_px, port_px, data.decode('utf-8'))
+       
+        else:
+            print(data)
         # Cerramos todo
         my_socket.close()
         print("Fin.")
     except socket.error:
         sys.exit('Error: No server listening at port ' + str(port_server))
 
-#------------------DUDAS---------------------------
-#Trying fuera de rango. Por que? el server lo hace bien?¿
 #Error en el proxy del uaclient line referenced before..
 
