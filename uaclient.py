@@ -12,9 +12,7 @@ from xml.sax.handler import ContentHandler
 
 
 class Log:
-    
-    def __init__(self,fich_log):
-    
+    def __init__(self, fich_log):
         self.fich_log = fich_log
 
     def eventos(self, evento, ip, port, messag):
@@ -28,14 +26,18 @@ class Log:
         elif evento == 'Finishing':
             lines = Time_user + ' Finishing.'
         elif evento == 'Sent to':
-            lines = Time_user + ' ' + evento + ' ' + ip + ':' + str(port) + ': ' + str(messag)
+            lines = Time_user + ' ' + evento + ' ' + ip + ':' + str(port)\
+                + ': ' + str(messag)
         elif evento == 'Received from':
-            lines = Time_user + ' ' + evento + ' ' + ip + ':' + str(port) + ': ' + messag
+            lines = Time_user + ' ' + evento + ' ' + ip + ':' + str(port)\
+                + ': ' + messag
         elif evento == 'Error':
-            lines = Time_user + ' ' + evento + ': ' + messag + ' ' + ip + ' port ' + str(port)
+            lines = Time_user + ' ' + evento + ': ' + messag + ' ' + ip\
+                + ' port ' + str(port)
         else:
-            lines = "Error: algo raro pasa aqui " + evento + " " + ip + " " + port + " " + str(messag)
-        log.write(lines+ '\r\n')    
+            lines = "Error: algo raro pasa aqui " + evento + " " + ip\
+                + " " + port + " " + str(messag)
+        log.write(lines + '\r\n')
         log.close()
 
 
@@ -51,7 +53,6 @@ if __name__ == "__main__":
             if '@' not in Option:
                 print('Usage: python uaclient.py config method option')
                 raise SystemExit
-        
         if len(sys.argv) != 4:
             print('Usage: python uaclient.py config method option')
             raise SystemExit
@@ -72,22 +73,23 @@ if __name__ == "__main__":
 
     #Datos para conectar con el proxy y servidor
     for dicc in xml_hand.lista:
-         if dicc['name'] == 'account':
-             username = dicc['username']
-             passwd = dicc['passwd']
-         elif dicc['name'] == 'uaserver':
-             ip_server = dicc['ip']
-             port_server = dicc['puerto']
-         elif dicc['name'] == 'rtpaudio':
-             port_rtp = int(dicc['puerto'])
-         elif dicc['name'] == 'regproxy':
-             ip_px = dicc['ip']
-             port_px = int(dicc['puerto'])
-         elif dicc['name'] == 'log':
-             log_path = dicc['path']
-         elif dicc['name'] == 'audio':
-             audio_path = dicc['path']
-    # Creamos el socket, lo configuramos y lo atamos a un servidor/puerto del proxi
+        if dicc['name'] == 'account':
+            username = dicc['username'
+            passwd = dicc['passwd']
+        elif dicc['name'] == 'uaserver':
+            ip_server = dicc['ip']
+            port_server = dicc['puerto']
+        elif dicc['name'] == 'rtpaudio':
+            port_rtp = int(dicc['puerto'])
+        elif dicc['name'] == 'regproxy':
+            ip_px = dicc['ip']
+            port_px = int(dicc['puerto'])
+        elif dicc['name'] == 'log':
+            log_path = dicc['path']
+        elif dicc['name'] == 'audio':
+            audio_path = dicc['path']
+    # Creamos el socket, lo configuramos y lo atamos
+    #a un servidor/puerto del proxi
     my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     my_socket.connect((ip_px, port_px))
@@ -96,10 +98,10 @@ if __name__ == "__main__":
     fich_log = Log(log_path)
     #Formamos peticiones
     if METODO == 'REGISTER':
-         request = METODO + ' sip:' + username + ':' + str(port_server) + ' SIP/2.0\r\n'
+         request = METODO + ' sip:' + username + ':'\
+            + str(port_server) + ' SIP/2.0\r\n'
          cabecera = 'Expires: ' + str(Option) + '\r\n\r\n'
          request_t = request + cabecera
- 
     elif METODO == 'INVITE':
          request = METODO + ' sip:' + Option + ' SIP/2.0\r\n'
          cabecera = 'Content-Type: application/sdp\r\n\r\n'
@@ -113,20 +115,22 @@ if __name__ == "__main__":
     else:
         request_t = METODO + ' sip:' + Option + ' SIP/2.0\r\n\r\n'
     #Enviamos petición
-    my_socket.send(bytes(request_t,'utf-8'))
-    fich_log.eventos('Sent to',ip_px, str(port_px), request_t)
+    my_socket.send(bytes(request_t, 'utf-8'))
+    fich_log.eventos('Sent to', ip_px, str(port_px), request_t)
     try:
         #Vemos lo que recibimos
         data = my_socket.recv(1024)
-        print('Recibido:\r\n', data.decode('utf-8'))
+        datos = data.decode('utf-8')
+        print('Recibido:\r\n', datos)
         Data = data.split()
         if METODO == 'REGISTER':
-            fich_log.eventos('Received from', ip_px, port_px, data.decode('utf-8'))
+            fich_log.eventos('Received from', ip_px, port_px, datos)
             Authorization = Data[2].decode('utf-8')
             if Authorization == 'Unauthorized':
                 pas = Data[5].decode('utf-8')
                 nonce = pas.split('=')[1]
-                request = METODO + ' sip:' + username + ':' + str(port_server) + ' SIP/2.0\r\n'
+                request = METODO + ' sip:' + username + ':'\
+                    + str(port_server) + ' SIP/2.0\r\n'
                 cabecera = 'Expires: ' + str(Option) + '\r\n'
                 m = hashlib.md5()
                 m.update(bytes(passwd + nonce, 'utf-8'))
@@ -136,8 +140,9 @@ if __name__ == "__main__":
                 my_socket.send(bytes(request_t,'utf-8'))
                 fich_log.eventos('Sent to', ip_px, port_px, request_t)
                 dato = my_socket.recv(1024)
-                print(dato.decode('utf-8'))
-                fich_log.eventos('Received from', ip_px, port_px, dato.decode('utf-8'))
+                dato = dato.decode('utf-8')
+                print(dato)
+                fich_log.eventos('Received from', ip_px, port_px, dato)
 
         elif METODO == 'INVITE':
             Trying = Data[1].decode('utf-8')
@@ -153,11 +158,11 @@ if __name__ == "__main__":
                     O2 = dat.split('\r\n\r\n')[3]
                     fich_log.eventos('Received from', ip_px, port_px, Try)
                     fich_log.eventos('Received from', ip_px, port_px, Rin)
-                    fich_log.eventos('Received from', ip_px, port_px, O1+O2)
+                    fich_log.eventos('Received from', ip_px, port_px, O1 + O2)
                     request = 'ACK sip:' + Option + ' SIP/2.0'
                     my_socket.send(bytes(request,'utf-8'))
                     print("Enviando: " + request)
-                    fich_log.eventos('Sent to', ip_px, port_px, request) 
+                    fich_log.eventos('Sent to', ip_px, port_px, request)
                     Ip_serv = Data[13].decode('utf-8')
                     port = Data[17].decode('utf-8')
                     aEjecutar = './mp32rtp -i ' + Ip_serv + ' -p ' + port
@@ -167,18 +172,16 @@ if __name__ == "__main__":
                     fich_log.eventos('Sent to', Ip_serv, port, 'cancion.mp3')
             elif Trying == '404':
                 print(data)
-                fich_log.eventos('Received from', ip_px, port_px, data.decode('utf-8'))
-       
+                fich_log.eventos('Received from', ip_px, port_px, datos)
         else:
             if data != '':
-                fich_log.eventos('Received from', ip_px, port_px, data.decode('utf-8'))
+                fich_log.eventos('Received from', ip_px, port_px, datos)
             fich_log.eventos('Finishing','', '', '')
         # Cerramos todo
-        
         my_socket.close()
         print("Fin.")
-         
     except socket.error:
         fich_log.eventos('Error', ip_px, port_px, 'No server listening at')
-        sys.exit('Error: No server listening at ' + ip_px + ' port ' + str(port_server))
-
+        fich_log.close()
+        Error = 'Error: No server listening at '
+        sys.exit(Error + ip_px + ' port ' + str(port_server))
