@@ -74,7 +74,7 @@ if __name__ == "__main__":
     #Datos para conectar con el proxy y servidor
     for dicc in xml_hand.lista:
         if dicc['name'] == 'account':
-            username = dicc['username'
+            username = dicc['username']
             passwd = dicc['passwd']
         elif dicc['name'] == 'uaserver':
             ip_server = dicc['ip']
@@ -98,20 +98,20 @@ if __name__ == "__main__":
     fich_log = Log(log_path)
     #Formamos peticiones
     if METODO == 'REGISTER':
-         request = METODO + ' sip:' + username + ':'\
+        request = METODO + ' sip:' + username + ':'\
             + str(port_server) + ' SIP/2.0\r\n'
-         cabecera = 'Expires: ' + str(Option) + '\r\n\r\n'
-         request_t = request + cabecera
+        cabecera = 'Expires: ' + str(Option) + '\r\n\r\n'
+        request_t = request + cabecera
     elif METODO == 'INVITE':
-         request = METODO + ' sip:' + Option + ' SIP/2.0\r\n'
-         cabecera = 'Content-Type: application/sdp\r\n\r\n'
+        request = METODO + ' sip:' + Option + ' SIP/2.0\r\n'
+        cabecera = 'Content-Type: application/sdp\r\n\r\n'
         #Estructura SDP
-         sdp = 'v=0\r\n' + 'o=' + username + ' ' + ip_server + '\r\n' \
-             + 's=MiSesion\r\n' + 't=0\r\n' + 'm=audio ' + str(port_rtp)\
-             + ' RTP'
-         request_t = request + cabecera + sdp
+        sdp = 'v=0\r\n' + 'o=' + username + ' ' + ip_server + '\r\n' \
+            + 's=MiSesion\r\n' + 't=0\r\n' + 'm=audio ' + str(port_rtp)\
+            + ' RTP'
+        request_t = request + cabecera + sdp
     elif METODO == 'BYE':
-         request_t = METODO + ' sip:' + Option + ' SIP/2.0\r\n\r\n'
+        request_t = METODO + ' sip:' + Option + ' SIP/2.0\r\n\r\n'
     else:
         request_t = METODO + ' sip:' + Option + ' SIP/2.0\r\n\r\n'
     #Enviamos petición
@@ -137,7 +137,7 @@ if __name__ == "__main__":
                 response = m.hexdigest()
                 Authorization = 'Authorization: response=' + response
                 request_t = request + cabecera + Authorization
-                my_socket.send(bytes(request_t,'utf-8'))
+                my_socket.send(bytes(request_t, 'utf-8'))
                 fich_log.eventos('Sent to', ip_px, port_px, request_t)
                 dato = my_socket.recv(1024)
                 dato = dato.decode('utf-8')
@@ -160,7 +160,7 @@ if __name__ == "__main__":
                     fich_log.eventos('Received from', ip_px, port_px, Rin)
                     fich_log.eventos('Received from', ip_px, port_px, O1 + O2)
                     request = 'ACK sip:' + Option + ' SIP/2.0'
-                    my_socket.send(bytes(request,'utf-8'))
+                    my_socket.send(bytes(request, 'utf-8'))
                     print("Enviando: " + request)
                     fich_log.eventos('Sent to', ip_px, port_px, request)
                     Ip_serv = Data[13].decode('utf-8')
@@ -171,17 +171,16 @@ if __name__ == "__main__":
                     os.system(aEjecutar)
                     fich_log.eventos('Sent to', Ip_serv, port, 'cancion.mp3')
             elif Trying == '404':
-                print(data)
+                print(data.decode('utf-8'))
                 fich_log.eventos('Received from', ip_px, port_px, datos)
         else:
             if data != '':
                 fich_log.eventos('Received from', ip_px, port_px, datos)
-            fich_log.eventos('Finishing','', '', '')
+            fich_log.eventos('Finishing', '', '', '')
         # Cerramos todo
         my_socket.close()
         print("Fin.")
     except socket.error:
         fich_log.eventos('Error', ip_px, port_px, 'No server listening at')
-        fich_log.close()
         Error = 'Error: No server listening at '
         sys.exit(Error + ip_px + ' port ' + str(port_server))
