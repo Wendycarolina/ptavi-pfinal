@@ -28,11 +28,11 @@ class Log:
         elif evento == 'Finishing':
             lines = Time_user + ' Finishing.'
         elif evento == 'Sent to':
-            lines = Time_user + ' ' + evento + ':' + str(port) + ':' + str(messag)
+            lines = Time_user + ' ' + evento + ' ' + ip + ':' + str(port) + ': ' + str(messag)
         elif evento == 'Received from':
-            lines = Time_user + ' ' + evento + ' ' + ip + ':' + str(port) + ':' + messag
+            lines = Time_user + ' ' + evento + ' ' + ip + ':' + str(port) + ': ' + messag
         elif evento == 'Error':
-            lines = Time_user + '' + evento + messag.decode('utf-8')
+            lines = Time_user + ' ' + evento + ': ' + messag + ' ' + ip + ' port ' + str(port)
         else:
             lines = "Error: algo raro pasa aqui " + evento + " " + ip + " " + port + " " + str(messag)
         log.write(lines+ '\r\n')    
@@ -51,6 +51,7 @@ if __name__ == "__main__":
             if '@' not in Option:
                 print('Usage: python uaclient.py config method option')
                 raise SystemExit
+        
         if len(sys.argv) != 4:
             print('Usage: python uaclient.py config method option')
             raise SystemExit
@@ -86,8 +87,6 @@ if __name__ == "__main__":
              log_path = dicc['path']
          elif dicc['name'] == 'audio':
              audio_path = dicc['path']
-    print(ip_px)
-    print(port_px)
     # Creamos el socket, lo configuramos y lo atamos a un servidor/puerto del proxi
     my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -111,6 +110,8 @@ if __name__ == "__main__":
          request_t = request + cabecera + sdp
     elif METODO == 'BYE':
          request_t = METODO + ' sip:' + Option + ' SIP/2.0\r\n\r\n'
+    else:
+        request_t = METODO + ' sip:' + Option + ' SIP/2.0\r\n\r\n'
     #Enviamos petición
     my_socket.send(bytes(request_t,'utf-8'))
     fich_log.eventos('Sent to',ip_px, str(port_px), request_t)
@@ -171,7 +172,6 @@ if __name__ == "__main__":
         else:
             if data != '':
                 fich_log.eventos('Received from', ip_px, port_px, data.decode('utf-8'))
-            print(data)
             fich_log.eventos('Finishing','', '', '')
         # Cerramos todo
         
@@ -179,5 +179,6 @@ if __name__ == "__main__":
         print("Fin.")
          
     except socket.error:
-        sys.exit('Error: No server listening at port ' + str(port_server))
+        fich_log.eventos('Error', ip_px, port_px, 'No server listening at')
+        sys.exit('Error: No server listening at ' + ip_px + ' port ' + str(port_server))
 
