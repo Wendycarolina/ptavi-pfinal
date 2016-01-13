@@ -40,17 +40,16 @@ class EchoHandler(socketserver.DatagramRequestHandler):
             # Leyendo línea a línea lo que nos envía el cliente
             line = self.rfile.read()
             linea = line.decode('utf-8')
-            print("El cliente nos manda " + linea)
             #Datos para poder responder cliente o proxi
             ip_client = self.client_address[0]
             port_client = self.client_address[1]
-            fich_log.eventos('Received from',ip_client , port_client, linea)
             if linea != '':
+                print("El cliente nos manda " + linea)
+                fich_log.eventos('Received from',ip_client , port_client, linea)
                 Metodo = linea.split()[0]
-                print(Metodo)
                 #Mensajes que envío
                 if Metodo == 'INVITE':
-                    print('****************INVITE*******')
+                    print('*******INVITE*******')
                     message = b'SIP/2.0 100 TRYING\r\n\r\n'
                     message +=b'SIP/2.0 180 RINGING\r\n\r\n'
                     message += b'SIP/2.0 200 OK\r\n'
@@ -60,30 +59,37 @@ class EchoHandler(socketserver.DatagramRequestHandler):
                      + 's=MiSesion\r\n' + 't=0\r\n' + 'm=audio ' + str(port_rtp) + ' RTP'
                     message = message + cabecera + bytes(sdp, 'utf-8')
                     self.wfile.write(message)
-                    print(message)
-                    fich_log.eventos('Sent to',ip_client , port_client, message)
+                    print('Enviando:\r\n' + message.decode('utf-8'))
+                    m1 = 'SIP/2.0 100 TRYING\r\n'
+                    m2 = 'SIP/2.0 180 RINGING\r\n'
+                    m3 = 'SIP/2.0 200 OK\r\n'
+                    m4 = cabecera.decode('utf-8') + sdp
+                    fich_log.eventos('Sent to',ip_client , port_client, m1)
+                    fich_log.eventos('Sent to',ip_client , port_client, m2)
+                    fich_log.eventos('Sent to',ip_client , port_client, m3+m4)
                 elif Metodo == 'ACK':
-                    #ip y puerto obtenidos mediante descripción de la sesion (SDP)
-                    #REVISAR!!!!!!!!!!
-                    aEjecutar = './mp32rtp -i ' + ip_client + ' -p ' + port_rtp
+                    print('*********ACK*********')
+                    aEjecutar = './mp32rtp -i ' + ip_client + ' -p ' + str(port_rtp)
                     aEjecutar += '<' + audio_path
                     print("Vamos a ejecutar", aEjecutar)
                     os.system(aEjecutar)
-                    fich_log.eventos('Sent to', ip_client, + port_rtp, 'audio')
-                    
+                    fich_log.eventos('Sent to', ip_client, + port_rtp, 'cancion.mp3')
                 elif Metodo == 'BYE':
-                    print('***********BYE*********')
+                    print('*********BYE*********')
                     message = b'SIP/2.0 200 OK\r\n\r\n'
                     self.wfile.write(message)
-                    fich_log.eventos('Sent to',ip_client , port_client, message)
+                    print('Enviando:\r\n' + message.decode('utf-8'))
+                    fich_log.eventos('Sent to',ip_client , port_client, message.decode('utf-8'))
                 elif not Metodo in List:
                     message = b'SIP/2.0 405 Method Not Allowed'
+                    print('Enviando:\r\n' + message.decode('utf-8'))
                     self.wfile.write(message)
-                    fich_log.eventos('Sent to',ip_client , port_client, message)
+                    fich_log.eventos('Sent to',ip_client , port_client, message.decode('utf-8'))
                 else:
                     message = b'SIP/2.0 400 Bad Request\r\n'
                     self.wfile.write(message)
-                    fich_log.eventos('Sent to',ip_client , port_client, message)
+                    print('Enviando:\r\n' + message.decode('utf-8'))
+                    fich_log.eventos('Sent to',ip_client , port_client, message.decode('utf-8'))
             else:
                 break
 
@@ -129,7 +135,4 @@ if __name__ == "__main__":
     fich_log.eventos('Starting','', '', '')
     print("Listening...")
     serv.serve_forever()
-
-#-------------------------DUDAS----------------------------
-
 
