@@ -65,8 +65,9 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
                     if 'Authorization' not in Cabecera[2]:
                         nonce = random.getrandbits(1024)
                         Unauthorized = b'SIP/2.0 401 Unauthorized\r\n'
-                        Unauthorized += b'WWW Authenticate: nonce='
+                        Unauthorized += b'WWW Authenticate: Digest nonce='
                         Unauthorized += bytes(str(nonce), 'utf-8')
+                        Unauthorized += b'\r\n\r\n'
                         self.wfile.write(Unauthorized)
                         mensaje = Unauthorized.decode('utf-8')
                         fich_log.eventos('Sent to', ip, port, mensaje)
