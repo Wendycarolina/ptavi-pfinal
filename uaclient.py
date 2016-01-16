@@ -135,8 +135,8 @@ if __name__ == "__main__":
                 m = hashlib.md5()
                 m.update(bytes(passwd + nonce, 'utf-8'))
                 response = m.hexdigest()
-                Authorization = 'Authorization: response=' + response
-                request_t = request + cabecera + Authorization
+                Author = 'Authorization: Digest response=' + response + '\r\n'
+                request_t = request + cabecera + Author
                 my_socket.send(bytes(request_t, 'utf-8'))
                 fich_log.eventos('Sent to', ip_px, port_px, request_t)
                 dato = my_socket.recv(1024)
